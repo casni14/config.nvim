@@ -119,36 +119,61 @@ vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' }
 -- vim.keymap.set("n", "<C-S-j>", "<C-w>J", { desc = "Move window to the lower" })
 -- vim.keymap.set("n", "<C-S-k>", "<C-w>K", { desc = "Move window to the upper" })
 
-vim.keymap.set('v', 'J', ":m '>+1<CR>gv=gv")
-vim.keymap.set('v', 'K', ":m '<-2<CR>gv=gv")
+-- ──────────────────────────────────────────────────────────────────────────────
+--  Visual-mode line movement
+-- ──────────────────────────────────────────────────────────────────────────────
+vim.keymap.set('v', 'J', ":m '>+1<CR>gv=gv", { desc = '[J] Move selection down' })
+vim.keymap.set('v', 'K', ":m '<-2<CR>gv=gv", { desc = '[K] Move selection up' })
 
-vim.keymap.set('n', 'J', 'mzJ`z')
-vim.keymap.set('n', '<C-d>', '<C-d>zz')
-vim.keymap.set('n', '<C-u>', '<C-u>zz')
-vim.keymap.set('n', 'n', 'nzzzv')
-vim.keymap.set('n', 'N', 'Nzzzv')
-vim.keymap.set('n', '=ap', "ma=ap'a")
+-- ──────────────────────────────────────────────────────────────────────────────
+--  Line joins, scrolling & search centering
+-- ──────────────────────────────────────────────────────────────────────────────
+vim.keymap.set('n', 'J', 'mzJ`z', { desc = '[J]oin next line (keep cursor)' })
+vim.keymap.set('n', '<C-d>', '<C-d>zz', { desc = 'Half-page [D]own & center' })
+vim.keymap.set('n', '<C-u>', '<C-u>zz', { desc = 'Half-page [U]p & center' })
+vim.keymap.set('n', 'n', 'nzzzv', { desc = 'Next search [n] & center / open folds' })
+vim.keymap.set('n', 'N', 'Nzzzv', { desc = 'Prev search [N] & center / open folds' })
 
-vim.keymap.set('x', '<leader>p', [["_dP]])
+-- ──────────────────────────────────────────────────────────────────────────────
+--  Indentaiton helper
+-- ──────────────────────────────────────────────────────────────────────────────
+vim.keymap.set('n', '=ap', "ma=ap'a", { desc = '[=ap] Re-indent paragraph (keep cursor)' })
 
-vim.keymap.set({ 'n', 'v' }, '<leader>y', [["+y]])
+-- ──────────────────────────────────────────────────────────────────────────────
+--  Clipboard / delete conveniences
+-- ──────────────────────────────────────────────────────────────────────────────
+vim.keymap.set('x', '<leader>p', [["_dP]], { desc = '[P]aste over selection (preserve yank)' })
+vim.keymap.set({ 'n', 'v' }, '<leader>y', [["+y]], { desc = '[Y]ank to system clipboard' })
+vim.keymap.set('n', '<leader>Y', [["+Y]], { desc = 'Yank whole line to s[Y]stem clipboard' })
+vim.keymap.set({ 'n', 'v' }, '<leader>d', '"_d', { desc = '[D]elete to void register' })
 
-vim.keymap.set('n', '<leader>Y', [["+Y]])
+-- ──────────────────────────────────────────────────────────────────────────────
+--  Disable accidental Ex mode
+-- ──────────────────────────────────────────────────────────────────────────────
+vim.keymap.set('n', 'Q', '<nop>', { desc = 'Disable [Q] Ex mode' })
 
-vim.keymap.set({ 'n', 'v' }, '<leader>d', '"_d')
+-- ──────────────────────────────────────────────────────────────────────────────
+--  Quickfix / location-list navigation
+-- ──────────────────────────────────────────────────────────────────────────────
+vim.keymap.set('n', '<leader><C-k>', '<cmd>cnext<CR>zz', { desc = 'Quickfix next (<C-k>) & center' })
+vim.keymap.set('n', '<leader><C-j>', '<cmd>cprev<CR>zz', { desc = 'Quickfix prev (<C-j>) & center' })
+vim.keymap.set('n', '<leader>k', '<cmd>lnext<CR>zz', { desc = 'Location list next ([k]) & center' })
+vim.keymap.set('n', '<leader>j', '<cmd>lprev<CR>zz', { desc = 'Location list prev ([j]) & center' })
 
-vim.keymap.set('n', 'Q', '<nop>')
+-- ──────────────────────────────────────────────────────────────────────────────
+--  Substitute current word everywhere
+-- ──────────────────────────────────────────────────────────────────────────────
+vim.keymap.set('n', '<leader>S', [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]], { desc = '[S]ubstitute word under cursor' })
 
-vim.keymap.set('n', '<leader><C-k>', '<cmd>cnext<CR>zz')
-vim.keymap.set('n', '<leader><C-j>', '<cmd>cprev<CR>zz')
-vim.keymap.set('n', '<leader>k', '<cmd>lnext<CR>zz')
-vim.keymap.set('n', '<leader>j', '<cmd>lprev<CR>zz')
+-- ──────────────────────────────────────────────────────────────────────────────
+--  Make current file executable
+-- ──────────────────────────────────────────────────────────────────────────────
+vim.keymap.set('n', '<leader>x', '<cmd>!chmod +x %<CR>', { silent = true, desc = 'Chmod e[X]ecutable (%)' })
 
-vim.keymap.set('n', '<leader>s', [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]])
-vim.keymap.set('n', '<leader>x', '<cmd>!chmod +x %<CR>', { silent = true })
-
-vim.keymap.set('n', 'Q', '<nop>')
-vim.keymap.set('n', '<C-f>', '<cmd>silent !tmux neww tmux-sessionizer<CR>')
+-- ──────────────────────────────────────────────────────────────────────────────
+--  Open tmux sessionizer
+-- ──────────────────────────────────────────────────────────────────────────────
+vim.keymap.set('n', '<C-f>', '<cmd>silent !tmux neww tmux-sessionizer<CR>', { desc = 'Open tmux sessioni[F]er' })
 
 -- Helper: replace “.component.*” with the desired extension
 local function switch_ext(target_ext)
@@ -166,19 +191,19 @@ end
 -- <leader>o → switch to the “.component.ts” file
 vim.keymap.set('n', '<leader>o', function()
   switch_ext 'ts'
-end, { silent = true, desc = 'Go to component .ts' })
+end, { silent = true, desc = 'Go to c[o]mponent .ts' })
 
 -- <leader>c → switch to the “.component.scss” file
 vim.keymap.set('n', '<leader>c', function()
   switch_ext 'scss'
-end, { silent = true, desc = 'Go to component .scss' })
+end, { silent = true, desc = 'Go to component .s[c]ss' })
 
 -- <leader>h → switch to the “.component.html” file
 vim.keymap.set('n', '<leader>h', function()
   switch_ext 'html'
-end, { silent = true, desc = 'Go to component .html' })
+end, { silent = true, desc = 'Go to component .[h]tml' })
 
-local MIN = 5 * 60 * 1000 -- 5 minutes
+local MIN = 15 * 60 * 1000 -- 5 minutes
 
 local timer, err = vim.loop.new_timer()
 assert(timer, 'Failed to create timer: ' .. (err or 'unknown error'))
@@ -205,8 +230,6 @@ vim.api.nvim_create_autocmd('TextYankPost', {
     vim.hl.on_yank()
   end,
 })
-
-local home = vim.fn.expand '~'
 
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
