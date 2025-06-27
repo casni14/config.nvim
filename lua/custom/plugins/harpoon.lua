@@ -3,18 +3,17 @@ return {
   branch = 'harpoon2',
   dependencies = { 'nvim-lua/plenary.nvim' },
   config = function()
-    local status, harpoon = pcall(require, 'harpoon')
-    if status then
-      -- First setup harpoon with basic configuration
-      harpoon:setup {
-        settings = {
-          save_on_toggle = true,
-          sync_on_ui_close = true,
-        },
-      }
-    else
-      vim.notify('Failed to load Harpoon: ' .. tostring(harpoon), vim.log.levels.ERROR)
-    end
+    local harpoon = require 'harpoon'
+    local extensions = require 'harpoon.extensions'
+
+    harpoon:extend(extensions.builtins.highlight_current_file())
+    -- First setup harpoon with basic configuration
+    harpoon:setup {
+      settings = {
+        save_on_toggle = true,
+      },
+    }
+
     vim.keymap.set('n', '<leader>a', function()
       harpoon:list():add()
     end, { desc = '[A]dd file to Harpoon list' })

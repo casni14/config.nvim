@@ -18,6 +18,22 @@ local function app_name(bundle)
   return bundle:match '([^%.]+)$' or bundle -- chars that are *not* a dot, to EOL
 end
 
+local function load_seen()
+  local ok, txt = pcall(vim.fn.readfile, state_file)
+  if not ok then
+    return {}
+  end
+  local ok2, decoded = pcall(vim.fn.json_decode, table.concat(txt, '\n'))
+  return ok2 and decoded or {}
+end
+
+local function save_seen(seen)
+  vim.fn.writefile({ vim.fn.json_encode(seen) }, state_file)
+end
+
+-- ~/.config/nvim/lua/custom/plugins/macos-notifications/lua/init.lua
+local state_file = vim.fn.stdpath 'state' .. '/macos-notifications-seen.json'
+
 -- locate the SQLite DB on any macOS release -------------------------------
 local function find_db()
   -- Sequoia / macOS 25-26
@@ -111,14 +127,30 @@ local function get_notifications(limit)
       epoch = epoch + 978307200
     end
 
+    local time_str = os.date('%Y-%m-%d %H:%M:%S', math.floor(epoch or 0))
+    local title = alert.titl or alert.title or plist.app or '—'
+    local key = ('%s|%s|%s'):format(time_str, app, title)
+
     table.insert(out, {
       time = os.date('%Y-%m-%d %H:%M:%S', math.floor(epoch or 0)),
       title = alert.titl or alert.title or plist.app or '—',
       body = alert.body or '',
       app = app,
+      key = key,
     })
   end
   return out
+end
+
+local app_blacklist = { 'wwdc-Release', 'RadioFrance', 'AppStore' }
+
+local function array_includes(tbl, value)
+  for _, v in ipairs(tbl) do
+    if v == value then
+      return true
+    end
+  end
+  return false
 end
 
 -- floating-window UI -------------------------------------------------------
@@ -130,21 +162,46 @@ local function show_notifications()
   end
 
   local buf, lines = api.nvim_create_buf(false, true), {}
-  for _, n in ipairs(notes) do
-    table.insert(lines, ('[%s] (%s) %s'):format(n.time, n.app, n.title))
+  local seen = load_seen() -- JSON → Lua set
+  local newest = {} -- keys we are about to record
+  local hl = {} -- {line_nr = true}
 
-    -- split body on \n, keep indentation
+  for _, n in ipairs(notes) do
+    if array_includes(app_blacklist, n.app) then
+      goto continue
+    end
+
+    local is_new = not seen[n.key]
+    if is_new then
+      hl[#lines + 1] = true
+    end -- highlight this line
+    newest[n.key] = true
+
+    table.insert(lines, ('[%s] (%s) %s'):format(n.time, n.app, n.title))
     for _, line in ipairs(vim.split(n.body or '', '\n')) do
       table.insert(lines, '    ' .. line)
     end
+    table.insert(lines, '')
 
-    table.insert(lines, '') -- blank separator
+    ::continue::
   end
   api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  -- define a highlight (once per session)
+  vim.cmd 'hi default link MacNoteNew Title'
 
-  local W, H = api.nvim_get_option 'columns', api.nvim_get_option 'lines'
-  local width = math.min(math.floor(W * 0.6), 120)
-  local height = math.min(#lines, math.floor(H * 0.4))
+  -- apply it to the stored line numbers
+  for lnr, _ in pairs(hl) do
+    api.nvim_buf_add_highlight(buf, -1, 'MacNoteNew', lnr - 1, 0, -1)
+  end
+
+  local W = vim.o.columns
+  local H = vim.o.lines
+  local width = math.min(math.floor(W * 0.4), 120)
+  local height = math.min(vim.o.lines, math.floor(H * 0.8))
+
+  -- top-right corner:
+  local row = 0
+  local col = W - width
 
   api.nvim_open_win(buf, true, {
     relative = 'editor',
@@ -152,9 +209,20 @@ local function show_notifications()
     border = 'rounded',
     width = width,
     height = height,
-    row = math.floor((H - height) / 2),
-    col = math.floor((W - width) / 2),
+    row = row,
+    col = col,
   })
+  ------------------------------------------------------------------------
+  -- Press “q” in normal mode to close the floating window.
+  ------------------------------------------------------------------------
+  api.nvim_buf_set_keymap(buf, 'n', 'q', '<cmd>close<CR>', { silent = true, nowait = true, noremap = true })
+  ---------------------------------------------------------------------------
+  -- merge:  seen ← seen ∪ newest
+  ---------------------------------------------------------------------------
+  for k in pairs(newest) do
+    seen[k] = true -- add every key we just displayed
+  end
+  save_seen(seen) -- persist the enlarged set
 end
 -- public setup -------------------------------------------------------------
 function M.setup()
